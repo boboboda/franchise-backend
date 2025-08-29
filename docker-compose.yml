@@ -1,12 +1,18 @@
 services:
-  nestjs-app:
-    build: .
-    container_name: nestjs-franchise
-    ports:
-      - "8080:8080"  # 외부 8080 -> 내부 8080
-    environment:
-      - DATABASE_URL=postgresql://kju9038:20180520@host.docker.internal:5432/crawler_db
-      - CRAWLER_URL=http://host.docker.internal:8000
-      - JWT_SECRET=your-jwt-secret-key
-      - PORT=8080
-    restart: unless-stopped
+ nestjs-app:
+   build: .
+   container_name: nestjs-franchise
+   ports:
+     - "8080:8080"
+   environment:
+     - DATABASE_URL=postgresql://kju9038:20180520@localhost:5433/crawler_db
+     - CRAWLER_URL=http://crawler-api:8000
+     - JWT_SECRET=20180520
+     - PORT=8080
+   networks:
+     - py-crawler_default
+   restart: unless-stopped
+
+networks:
+ py-crawler_default:
+   external: true
