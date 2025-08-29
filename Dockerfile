@@ -16,8 +16,6 @@ RUN npm ci
 COPY . .
 
 # Prisma 생성
-RUN npx prisma migrate deploy
-
 RUN npx prisma generate
 
 # NestJS 빌드
@@ -27,4 +25,4 @@ RUN npm run build
 EXPOSE 8080
 
 # 애플리케이션 실행
-CMD ["npm", "run", "start:prod"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start:prod"]
