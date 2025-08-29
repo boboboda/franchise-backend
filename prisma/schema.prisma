@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model Franchise {
+  id                 Int      @id @default(autoincrement())
+  companyId          String   @unique @map("company_id")
+  url                String
+  companyName        String?  @map("company_name")
+  brandName          String?  @map("brand_name")
+  crawledAt          DateTime @default(now()) @map("crawled_at")
+  
+  // JSON 필드들 - 파이썬 구조와 일치
+  basicInfo          Json     @map("basic_info")
+  businessStatus     Json     @map("business_status")
+  legalCompliance    Json     @map("legal_compliance")
+  franchiseeCosts    Json     @map("franchisee_costs")
+  businessTerms      Json     @map("business_terms")
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@map("franchises")
+  @@index([companyId])
+  @@index([companyName])
+  @@index([brandName])
+}
+
+// prisma/schema.prisma에 User 모델 추가
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  name            String
+  phone           String
+  role            String    @default("USER")
+  userType        UserType  @default(ENTREPRENEUR)
+  fcmToken        String?
+  termsAgreed     Boolean   @default(false)
+  marketingAgreed Boolean   @default(false)
+  autoLoginState  Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("users")
+}
+
+enum UserType {
+  ENTREPRENEUR
+  CONSULTANT
+}
