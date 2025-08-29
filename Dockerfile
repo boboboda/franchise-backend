@@ -16,6 +16,8 @@ RUN npm ci
 COPY . .
 
 # Prisma 생성
+RUN npx prisma migrate deploy
+
 RUN npx prisma generate
 
 # NestJS 빌드
