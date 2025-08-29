@@ -30,8 +30,8 @@ model Franchise {
   businessTerms      Json     @map("business_terms")
   
   createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  
+  updatedAt          DateTime @default(now()) @updatedAt
+
   @@map("franchises")
   @@index([companyId])
   @@index([companyName])
