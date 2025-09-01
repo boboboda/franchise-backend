@@ -45,15 +45,6 @@ export class FranchiseSearchQueryDto extends FranchiseQueryDto {
   query: string;
 }
 
-// src/franchise/dto/franchise-response.dto.ts
-export class PagingResponseDto<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  currentPage: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
 
 export class FranchiseResponseDto {
   id: string;
@@ -75,3 +66,66 @@ export class FranchiseResponseDto {
   createdAt: Date;
   updatedAt: Date;
 }
+
+
+// src/franchise/dto/franchise.dto.ts
+export class FranchiseListItemDto {
+  id: string;
+  name: string;
+  brandName: string;
+  category: string;
+  ceo: string;
+  businessType: string;
+  address: string;
+  phone: string;
+  status: string;
+  imageUrl?: string | null;  // null 허용
+  totalStores: number;
+  directStores: number;
+  franchiseStores: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export class FranchiseDetailDto {
+  id: string;
+  name: string;
+  brandName: string;
+  category: string;
+  ceo: string;
+  businessType: string;
+  address: string;
+  phone: string;
+  status: string;
+  imageUrl?: string | null;  // null 허용
+  
+  // 상세 정보
+  basicInfo: any;
+  businessStatus: any;
+  legalCompliance: any;
+  franchiseeCosts: any;
+  businessTerms: any;
+  
+  // 안드로이드 앱 호환용
+  financialInfo: any;
+  storeInfo: any;
+  costInfo: any;
+  contractInfo: any;
+  legalInfo: any;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export class PagingResponseDto<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+// 응답 타입 정의
+export type FranchiseListResponse = PagingResponseDto<FranchiseListItemDto>;
+export type FranchiseDetailResponse = FranchiseDetailDto;

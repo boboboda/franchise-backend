@@ -2,11 +2,105 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FranchiseCategory } from './dto/franchise.dto';
-import { PagingResponseDto, FranchiseResponseDto } from './dto/franchise.dto';
 
 @Injectable()
 export class FranchiseService {
   constructor(private prisma: PrismaService) {}
+
+
+  // src/franchise/franchise.service.ts
+async searchFranchiseList(query: string, page: number = 1, size: number = 20) {
+  const skip = (page - 1) * size;
+
+  if (!query || query.trim() === '') {
+    return this.getFranchiseList(page, size);
+  }
+
+  const trimmedQuery = query.trim();
+
+  const whereClause = {
+    OR: [
+      { 
+        companyName: { 
+          contains: trimmedQuery, 
+          mode: 'insensitive' as const 
+        } 
+      },
+      { 
+        brandName: { 
+          contains: trimmedQuery, 
+          mode: 'insensitive' as const 
+        } 
+      }
+    ]
+  };
+
+  const [franchises, totalCount] = await Promise.all([
+    this.prisma.franchise.findMany({
+      where: whereClause,
+      skip,
+      take: size,
+      orderBy: { crawledAt: 'desc' },
+      select: {
+        companyId: true,
+        companyName: true,
+        brandName: true,
+        basicInfo: true,
+        businessStatus: true,
+        crawledAt: true,
+        updatedAt: true
+      }
+    }),
+    this.prisma.franchise.count({ where: whereClause })
+  ]);
+
+  return this.createPagingResponse(
+    franchises.map(f => this.transformToListItem(f)),
+    totalCount,
+    page,
+    size
+  );
+}
+
+async getFranchiseListByCategory(category: string, page: number = 1, size: number = 20) {
+  const skip = (page - 1) * size;
+  
+  let whereClause = {};
+  
+  if (category !== 'ALL') {
+    whereClause = {
+      basicInfo: {
+        contains: `"업종","value":"${category}"`
+      }
+    };
+  }
+
+  const [franchises, totalCount] = await Promise.all([
+    this.prisma.franchise.findMany({
+      where: whereClause,
+      skip,
+      take: size,
+      orderBy: { crawledAt: 'desc' },
+      select: {
+        companyId: true,
+        companyName: true,
+        brandName: true,
+        basicInfo: true,
+        businessStatus: true,
+        crawledAt: true,
+        updatedAt: true
+      }
+    }),
+    this.prisma.franchise.count({ where: whereClause })
+  ]);
+
+  return this.createPagingResponse(
+    franchises.map(f => this.transformToListItem(f)),
+    totalCount,
+    page,
+    size
+  );
+}
 
   async getFranchises(page: number = 1, size: number = 20) {
     const skip = (page - 1) * size;
@@ -28,6 +122,112 @@ export class FranchiseService {
     );
   }
 
+  
+
+    async getFranchiseList(page: number = 1, size: number = 20) {
+    const skip = (page - 1) * size;
+
+    const [franchises, totalCount] = await Promise.all([
+      this.prisma.franchise.findMany({
+        skip,
+        take: size,
+        orderBy: { crawledAt: 'desc' },
+        select: {
+          companyId: true,
+          companyName: true,
+          brandName: true,
+          basicInfo: true,
+          businessStatus: true,
+          crawledAt: true,
+          updatedAt: true
+        }
+      }),
+      this.prisma.franchise.count()
+    ]);
+
+    return this.createPagingResponse(
+      franchises.map(f => this.transformToListItem(f)), 
+      totalCount, 
+      page, 
+      size
+    );
+  }
+
+  // 상세용 - 전체 데이터
+  async getFranchiseDetail(id: string) {
+    const franchise = await this.prisma.franchise.findUnique({
+      where: { companyId: id }
+      // 모든 필드 선택 (select 없음)
+    });
+
+    return franchise ? this.transformToDetailData(franchise) : null;
+  }
+
+  // 목록용 변환 (가벼운 데이터)
+  private transformToListItem(franchise: any) {
+    const basicInfo = this.parseJsonField(franchise.basicInfo);
+    const businessStatus = this.parseJsonField(franchise.businessStatus);
+    const storeInfo = this.extractStoreInfo(businessStatus);
+
+    return {
+      id: franchise.companyId,
+      name: franchise.companyName || franchise.brandName || "정보 없음",
+      brandName: franchise.brandName || franchise.companyName || "정보 없음",
+      category: this.extractCategory(basicInfo),
+      ceo: this.extractCeoName(basicInfo),
+      businessType: this.extractBusinessType(basicInfo),
+      address: this.extractAddress(basicInfo),
+      phone: this.extractPhone(basicInfo),
+      status: this.determineStatus(franchise),
+      imageUrl: null,
+      // 목록에서 필요한 매장 정보만
+      totalStores: storeInfo.totalStores,
+      directStores: storeInfo.directStores,
+      franchiseStores: storeInfo.franchiseStores,
+      createdAt: franchise.crawledAt,
+      updatedAt: franchise.updatedAt
+    };
+  }
+
+  // 상세용 변환 (전체 데이터)
+  private transformToDetailData(franchise: any) {
+    const basicInfo = this.parseJsonField(franchise.basicInfo);
+    const businessStatus = this.parseJsonField(franchise.businessStatus);
+    const franchiseeCosts = this.parseJsonField(franchise.franchiseeCosts);
+    const businessTerms = this.parseJsonField(franchise.businessTerms);
+    const legalCompliance = this.parseJsonField(franchise.legalCompliance);
+
+    return {
+      id: franchise.companyId,
+      name: franchise.companyName || franchise.brandName || "정보 없음",
+      brandName: franchise.brandName || franchise.companyName || "정보 없음",
+      category: this.extractCategory(basicInfo),
+      ceo: this.extractCeoName(basicInfo),
+      businessType: this.extractBusinessType(basicInfo),
+      address: this.extractAddress(basicInfo),
+      phone: this.extractPhone(basicInfo),
+      status: this.determineStatus(franchise),
+      imageUrl: null,
+      
+      // 상세 정보 전체
+      basicInfo: basicInfo,
+      businessStatus: businessStatus,
+      legalCompliance: legalCompliance,
+      franchiseeCosts: franchiseeCosts,
+      businessTerms: businessTerms,
+      
+      // 안드로이드 앱 호환용
+      financialInfo: this.extractFinancialInfo(basicInfo),
+      storeInfo: this.extractStoreInfo(businessStatus),
+      costInfo: this.extractCostInfo(franchiseeCosts),
+      contractInfo: this.extractContractInfo(businessTerms),
+      legalInfo: this.extractLegalInfo(legalCompliance),
+      
+      createdAt: franchise.crawledAt,
+      updatedAt: franchise.updatedAt
+    };
+  }
+
   async getFranchisesByCategory(
     category: FranchiseCategory,
     page: number = 1,
@@ -35,15 +235,16 @@ export class FranchiseService {
   ) {
     const skip = (page - 1) * size;
     
-    // category는 basicInfo JSON에서 업종 정보를 추출해야 함
-    const whereClause = category === FranchiseCategory.ALL 
-      ? {}
-      : {
-          OR: [
-            { companyName: { contains: this.getCategoryKeyword(category), mode: 'insensitive' as const } },
-            { brandName: { contains: this.getCategoryKeyword(category), mode: 'insensitive' as const } }
-          ]
-        };
+    let whereClause = {};
+    
+    if (category !== FranchiseCategory.ALL) {
+      // JSON 필드에서 업종 검색
+      whereClause = {
+        basicInfo: {
+          contains: `"업종","value":"${category}"`
+        }
+      };
+    }
 
     const [franchises, totalCount] = await Promise.all([
       this.prisma.franchise.findMany({
@@ -64,32 +265,54 @@ export class FranchiseService {
   }
 
   async searchFranchises(query: string, page: number = 1, size: number = 20) {
-    const skip = (page - 1) * size;
+  const skip = (page - 1) * size;
 
-    const whereClause = {
-      OR: [
-        { companyName: { contains: query, mode: 'insensitive' as const } },
-        { brandName: { contains: query, mode: 'insensitive' as const } }
-      ]
-    };
-
-    const [franchises, totalCount] = await Promise.all([
-      this.prisma.franchise.findMany({
-        where: whereClause,
-        skip,
-        take: size,
-        orderBy: { crawledAt: 'desc' }
-      }),
-      this.prisma.franchise.count({ where: whereClause })
-    ]);
-
-    return this.createPagingResponse(
-      franchises.map(f => this.transformFranchiseData(f)),
-      totalCount,
-      page,
-      size
-    );
+  // query가 없거나 빈 문자열인 경우 전체 목록 반환
+  if (!query || query.trim() === '') {
+    return this.getFranchises(page, size);
   }
+
+  const trimmedQuery = query.trim();
+
+  const whereClause = {
+    OR: [
+      { 
+        companyName: { 
+          contains: trimmedQuery, 
+          mode: 'insensitive' as const 
+        } 
+      },
+      { 
+        brandName: { 
+          contains: trimmedQuery, 
+          mode: 'insensitive' as const 
+        } 
+      },
+      { 
+        basicInfo: { 
+          string_contains: trimmedQuery 
+        } 
+      }
+    ]
+  };
+
+  const [franchises, totalCount] = await Promise.all([
+    this.prisma.franchise.findMany({
+      where: whereClause,
+      skip,
+      take: size,
+      orderBy: { crawledAt: 'desc' }
+    }),
+    this.prisma.franchise.count({ where: whereClause })
+  ]);
+
+  return this.createPagingResponse(
+    franchises.map(f => this.transformFranchiseData(f)),
+    totalCount,
+    page,
+    size
+  );
+}
 
   async getFranchiseById(id: string) {
     const franchise = await this.prisma.franchise.findUnique({
@@ -100,36 +323,49 @@ export class FranchiseService {
   }
 
   private transformFranchiseData(franchise: any) {
-    // 파이썬 데이터 구조를 안드로이드 앱에서 사용할 수 있는 형태로 변환
+    const basicInfo = this.parseJsonField(franchise.basicInfo);
+    const businessStatus = this.parseJsonField(franchise.businessStatus);
+    const franchiseeCosts = this.parseJsonField(franchise.franchiseeCosts);
+    const businessTerms = this.parseJsonField(franchise.businessTerms);
+    const legalCompliance = this.parseJsonField(franchise.legalCompliance);
+
     return {
       id: franchise.companyId,
       name: franchise.companyName || franchise.brandName || "정보 없음",
       brandName: franchise.brandName || franchise.companyName || "정보 없음",
-      category: this.extractCategory(franchise.basicInfo),
-      ceo: this.extractCeoName(franchise.basicInfo),
-      businessType: this.extractBusinessType(franchise.basicInfo),
-      address: this.extractAddress(franchise.basicInfo),
-      phone: this.extractPhone(franchise.basicInfo),
+      category: this.extractCategory(basicInfo),
+      ceo: this.extractCeoName(basicInfo),
+      businessType: this.extractBusinessType(basicInfo),
+      address: this.extractAddress(basicInfo),
+      phone: this.extractPhone(basicInfo),
       status: this.determineStatus(franchise),
       imageUrl: null,
       
       // 상세 정보는 원본 JSON 구조 유지
-      basicInfo: franchise.basicInfo,
-      businessStatus: franchise.businessStatus,
-      legalCompliance: franchise.legalCompliance,
-      franchiseeCosts: franchise.franchiseeCosts,
-      businessTerms: franchise.businessTerms,
+      basicInfo: basicInfo,
+      businessStatus: businessStatus,
+      legalCompliance: legalCompliance,
+      franchiseeCosts: franchiseeCosts,
+      businessTerms: businessTerms,
       
       // 안드로이드 앱 호환을 위한 추가 정보
-      financialInfo: this.extractFinancialInfo(franchise.businessStatus),
-      storeInfo: this.extractStoreInfo(franchise.businessStatus),
-      costInfo: this.extractCostInfo(franchise.franchiseeCosts),
-      contractInfo: this.extractContractInfo(franchise.businessTerms),
-      legalInfo: this.extractLegalInfo(franchise.legalCompliance),
+      financialInfo: this.extractFinancialInfo(basicInfo),
+      storeInfo: this.extractStoreInfo(businessStatus),
+      costInfo: this.extractCostInfo(franchiseeCosts),
+      contractInfo: this.extractContractInfo(businessTerms),
+      legalInfo: this.extractLegalInfo(legalCompliance),
       
       createdAt: franchise.crawledAt,
       updatedAt: franchise.updatedAt
     };
+  }
+
+  private parseJsonField(jsonString: string): any {
+    try {
+      return JSON.parse(jsonString);
+    } catch {
+      return {};
+    }
   }
 
   private extractCategory(basicInfo: any): string {
@@ -137,11 +373,11 @@ export class FranchiseService {
       const sections = basicInfo?.sections || [];
       for (const section of sections) {
         if (section?.data && Array.isArray(section.data)) {
-          const businessTypeItem = section.data.find(item => 
-            item?.title === '업종' || item?.title === '사업자유형'
+          const categoryItem = section.data.find(item => 
+            item?.title === '업종'
           );
-          if (businessTypeItem?.value) {
-            return businessTypeItem.value;
+          if (categoryItem?.value) {
+            return categoryItem.value;
           }
         }
       }
@@ -157,7 +393,7 @@ export class FranchiseService {
       for (const section of sections) {
         if (section?.data && Array.isArray(section.data)) {
           const ceoItem = section.data.find(item => 
-            item?.title === '대표자' || item?.title === '대표자명'
+            item?.title === '대표자'
           );
           if (ceoItem?.value) {
             return ceoItem.value;
@@ -171,42 +407,148 @@ export class FranchiseService {
   }
 
   private extractBusinessType(basicInfo: any): string {
-    // basicInfo에서 사업자유형 추출
-    return "법인"; // 기본값
+    try {
+      const sections = basicInfo?.sections || [];
+      for (const section of sections) {
+        if (section?.data && Array.isArray(section.data)) {
+          const typeItem = section.data.find(item => 
+            item?.title === '사업자유형'
+          );
+          if (typeItem?.value) {
+            return typeItem.value;
+          }
+        }
+      }
+      return "법인";
+    } catch {
+      return "법인";
+    }
   }
 
   private extractAddress(basicInfo: any): string {
-    // basicInfo에서 주소 추출
-    return "주소 정보 없음"; // 기본값
+    try {
+      const sections = basicInfo?.sections || [];
+      for (const section of sections) {
+        if (section?.data && Array.isArray(section.data)) {
+          const addressItem = section.data.find(item => 
+            item?.title === '주소'
+          );
+          if (addressItem?.value) {
+            return addressItem.value;
+          }
+        }
+      }
+      return "주소 정보 없음";
+    } catch {
+      return "주소 정보 없음";
+    }
   }
 
   private extractPhone(basicInfo: any): string {
-    // basicInfo에서 전화번호 추출
-    return "전화번호 정보 없음"; // 기본값
+    try {
+      const sections = basicInfo?.sections || [];
+      for (const section of sections) {
+        if (section?.data && Array.isArray(section.data)) {
+          const phoneItem = section.data.find(item => 
+            item?.title === '대표번호'
+          );
+          if (phoneItem?.value) {
+            return phoneItem.value;
+          }
+        }
+      }
+      return "전화번호 정보 없음";
+    } catch {
+      return "전화번호 정보 없음";
+    }
   }
 
   private determineStatus(franchise: any): string {
-    // 비즈니스 로직에 따라 상태 결정
-    return "STABLE"; // 기본값
+    // 비즈니스 로직에 따라 상태 결정 (예: 최근 등록일 기준)
+    const crawledAt = new Date(franchise.crawledAt);
+    const daysDiff = Math.floor((Date.now() - crawledAt.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff < 30) return "NEW";
+    return "STABLE";
   }
 
-  private extractFinancialInfo(businessStatus: any): any {
-    // businessStatus에서 재무 정보 추출 및 변환
+  private extractFinancialInfo(basicInfo: any): any {
+    try {
+      const sections = basicInfo?.sections || [];
+      const financialSection = sections.find(section => 
+        section?.title === '재무 상황'
+      );
+      
+      if (financialSection?.data) {
+        return {
+          financialData: financialSection.data,
+          advertisingCosts: []
+        };
+      }
+    } catch {}
+    
     return { financialData: [], advertisingCosts: [] };
   }
 
   private extractStoreInfo(businessStatus: any): any {
-    // businessStatus에서 매장 정보 추출 및 변환
-    return {
-      totalStores: 0,
-      directStores: 0,
-      franchiseStores: 0,
-      regionalHeadquarters: 0
-    };
+  try {
+    const sections = businessStatus?.sections || [];
+    const storeSection = sections.find(section => 
+      section?.title === '가맹점 및 직영점 현황'
+    );
+    
+    if (storeSection?.data) {
+      const allRegionData = storeSection.data.find(region => region.region === '전체');
+      if (allRegionData?.year_data) {
+        const latestYear = Object.keys(allRegionData.year_data).sort().pop();
+        
+        // latestYear가 존재하는지 확인
+        if (latestYear && allRegionData.year_data[latestYear]) {
+          const latestData = allRegionData.year_data[latestYear];
+          
+          return {
+            totalStores: parseInt(latestData.total) || 0,
+            directStores: parseInt(latestData.direct_count) || 0,
+            franchiseStores: parseInt(latestData.franchise_count) || 0,
+            regionalHeadquarters: 0
+          };
+        }
+      }
+    }
+  } catch (error) {
+    console.error('매장 정보 추출 중 오류:', error);
   }
+  
+  return {
+    totalStores: 0,
+    directStores: 0,
+    franchiseStores: 0,
+    regionalHeadquarters: 0
+  };
+}
 
   private extractCostInfo(franchiseeCosts: any): any {
-    // franchiseeCosts에서 비용 정보 추출 및 변환
+    try {
+      const sections = franchiseeCosts?.sections || [];
+      const costSection = sections.find(section => 
+        section?.title === '가맹점사업자 부담금'
+      );
+      
+      if (costSection?.data) {
+        const costData = costSection.data.reduce((acc, item) => {
+          acc[item.key] = item.value;
+          return acc;
+        }, {});
+        
+        return {
+          joinFee: costData.join_fee || "0",
+          educationFee: costData.education_fee || "0",
+          securityDeposit: costData.security_deposit || "0",
+          totalInitialCost: costData.total || "0"
+        };
+      }
+    } catch {}
+    
     return {
       joinFee: "0",
       educationFee: "0",
@@ -216,31 +558,39 @@ export class FranchiseService {
   }
 
   private extractContractInfo(businessTerms: any): any {
-    // businessTerms에서 계약 정보 추출 및 변환
+    // businessTerms에서 계약 정보가 없는 경우가 많아서 기본값 반환
     return {
-      initialPeriodYears: 0,
-      extensionPeriodYears: 0
+      initialPeriodYears: 3,
+      extensionPeriodYears: 2
     };
   }
 
   private extractLegalInfo(legalCompliance: any): any {
-    // legalCompliance에서 법적 정보 추출 및 변환
+    try {
+      const sections = legalCompliance?.sections || [];
+      const legalSection = sections.find(section => 
+        section?.title === '법 위반 사실'
+      );
+      
+      if (legalSection?.data) {
+        const legalData = legalSection.data.reduce((acc, item) => {
+          acc[item.key] = parseInt(item.value) || 0;
+          return acc;
+        }, {});
+        
+        return {
+          ftcCorrections: legalData.ftc_correction || 0,
+          civilLawsuits: legalData.civil_lawsuit || 0,
+          criminalConvictions: legalData.criminal_conviction || 0
+        };
+      }
+    } catch {}
+    
     return {
       ftcCorrections: 0,
       civilLawsuits: 0,
       criminalConvictions: 0
     };
-  }
-
-  private getCategoryKeyword(category: FranchiseCategory): string {
-    const keywords = {
-      [FranchiseCategory.KOREAN]: '한식',
-      [FranchiseCategory.CHINESE]: '중식',
-      [FranchiseCategory.JAPANESE]: '일식',
-      [FranchiseCategory.CAFE_DESSERT]: '카페',
-      [FranchiseCategory.CHICKEN_PIZZA]: '치킨'
-    };
-    return keywords[category] || '';
   }
 
   private createPagingResponse(franchises: any[], totalCount: number, page: number, size: number) {
