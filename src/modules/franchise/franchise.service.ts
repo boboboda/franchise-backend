@@ -152,20 +152,18 @@ async getFranchiseListByCategory(category: string, page: number = 1, size: numbe
       size
     );
   }
-
-  // 상세용 - 전체 데이터
-  async getFranchiseDetail(id: string) {
-    const franchise = await this.prisma.franchise.findUnique({
-      where: { companyId: id }
-      // 모든 필드 선택 (select 없음)
-    });
-
-    return franchise ? this.transformToDetailData(franchise) : null;
-  }
-
   // 목록용 변환 (가벼운 데이터)
   private transformToListItem(franchise: any) {
+    console.log('Raw basicInfo type:', typeof franchise.basicInfo);
+    console.log('Raw basicInfo sample:', franchise.basicInfo?.substring(0, 100));
+  
     const basicInfo = this.parseJsonField(franchise.basicInfo);
+    console.log('Parsed basicInfo structure:', {
+    hasTitle: !!basicInfo?.title,
+    hasSections: !!basicInfo?.sections,
+    sectionsLength: basicInfo?.sections?.length
+  });
+  
     const businessStatus = this.parseJsonField(franchise.businessStatus);
     const storeInfo = this.extractStoreInfo(businessStatus);
 
@@ -188,6 +186,19 @@ async getFranchiseListByCategory(category: string, page: number = 1, size: numbe
       updatedAt: franchise.updatedAt
     };
   }
+
+
+
+  // 상세용 - 전체 데이터
+  async getFranchiseDetail(id: string) {
+    const franchise = await this.prisma.franchise.findUnique({
+      where: { companyId: id }
+      // 모든 필드 선택 (select 없음)
+    });
+
+    return franchise ? this.transformToDetailData(franchise) : null;
+  }
+
 
   // 상세용 변환 (전체 데이터)
   private transformToDetailData(franchise: any) {
@@ -361,12 +372,22 @@ async getFranchiseListByCategory(category: string, page: number = 1, size: numbe
   }
 
   private parseJsonField(jsonString: string): any {
-    try {
-      return JSON.parse(jsonString);
-    } catch {
-      return {};
+  try {
+    // 이중 인코딩된 JSON 처리
+    let parsed = JSON.parse(jsonString);
+    
+    // 만약 파싱 결과가 여전히 문자열이면 한 번 더 파싱
+    if (typeof parsed === 'string') {
+      parsed = JSON.parse(parsed);
     }
+    
+    return parsed;
+  } catch (error) {
+    console.error('JSON 파싱 오류:', error);
+    console.error('Original string:', jsonString?.substring(0, 200));
+    return {};
   }
+}
 
   private extractCategory(basicInfo: any): string {
     try {
