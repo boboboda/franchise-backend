@@ -310,10 +310,33 @@ export class FranchiseService {
   }
 
   private determineStatus(franchise: any): string {
-    const crawledAt = new Date(franchise.crawledAt);
-    const daysDiff = Math.floor((Date.now() - crawledAt.getTime()) / (1000 * 60 * 60 * 24));
-    return daysDiff < 30 ? "NEW" : "STABLE";
+  const basicInfo = franchise.basicInfo;
+  const businessStatus = franchise.businessStatus;
+  const storeInfo = this.extractStoreInfo(businessStatus);
+  
+  const totalStores = storeInfo.totalStores;
+  const establishedDate = this.extractEstablishedDate(basicInfo);
+  
+  // 매장 수가 많으면 HOT
+  if (totalStores >= 100) return "HOT";
+  if (totalStores >= 50) return "POPULAR";
+  
+  // 사업 기간으로 판단
+  if (establishedDate) {
+    try {
+      const established = new Date(establishedDate.replace(/\./g, '-'));
+      const yearsDiff = (Date.now() - established.getTime()) / (1000 * 60 * 60 * 24 * 365);
+      
+      if (yearsDiff < 1) return "NEW";
+      if (yearsDiff < 3 && totalStores >= 10) return "GROWING";
+      if (yearsDiff >= 5) return "STABLE";
+    } catch {}
   }
+  
+  // 기본값
+  if (totalStores >= 10) return "STABLE";
+  return "NEW";
+}
 
   private extractFinancialInfo(basicInfo: any): any {
     try {
