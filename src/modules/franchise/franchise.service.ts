@@ -154,38 +154,41 @@ async getFranchiseListByCategory(category: string, page: number = 1, size: numbe
   }
   // 목록용 변환 (가벼운 데이터)
   private transformToListItem(franchise: any) {
-    console.log('Raw basicInfo type:', typeof franchise.basicInfo);
-    console.log('Raw basicInfo sample:', franchise.basicInfo?.substring(0, 100));
-  
-    const basicInfo = this.parseJsonField(franchise.basicInfo);
-    console.log('Parsed basicInfo structure:', {
-    hasTitle: !!basicInfo?.title,
-    hasSections: !!basicInfo?.sections,
-    sectionsLength: basicInfo?.sections?.length
+  // 디버깅용 로그 수정
+  console.log('Raw basicInfo type:', typeof franchise.basicInfo);
+  console.log('Raw basicInfo structure:', {
+    hasTitle: !!franchise.basicInfo?.title,
+    hasSections: !!franchise.basicInfo?.sections,
+    sectionsLength: franchise.basicInfo?.sections?.length
   });
   
-    const businessStatus = this.parseJsonField(franchise.businessStatus);
-    const storeInfo = this.extractStoreInfo(businessStatus);
+  // Prisma가 이미 파싱했으므로 parseJsonField 불필요
+  const basicInfo = franchise.basicInfo;
+  const businessStatus = franchise.businessStatus;
+  
+  console.log('CEO 추출 시도:', this.extractCeoName(basicInfo));
+  console.log('카테고리 추출 시도:', this.extractCategory(basicInfo));
+  
+  const storeInfo = this.extractStoreInfo(businessStatus);
 
-    return {
-      id: franchise.companyId,
-      name: franchise.companyName || franchise.brandName || "정보 없음",
-      brandName: franchise.brandName || franchise.companyName || "정보 없음",
-      category: this.extractCategory(basicInfo),
-      ceo: this.extractCeoName(basicInfo),
-      businessType: this.extractBusinessType(basicInfo),
-      address: this.extractAddress(basicInfo),
-      phone: this.extractPhone(basicInfo),
-      status: this.determineStatus(franchise),
-      imageUrl: null,
-      // 목록에서 필요한 매장 정보만
-      totalStores: storeInfo.totalStores,
-      directStores: storeInfo.directStores,
-      franchiseStores: storeInfo.franchiseStores,
-      createdAt: franchise.crawledAt,
-      updatedAt: franchise.updatedAt
-    };
-  }
+  return {
+    id: franchise.companyId,
+    name: franchise.companyName || franchise.brandName || "정보 없음",
+    brandName: franchise.brandName || franchise.companyName || "정보 없음",
+    category: this.extractCategory(basicInfo),
+    ceo: this.extractCeoName(basicInfo),
+    businessType: this.extractBusinessType(basicInfo),
+    address: this.extractAddress(basicInfo),
+    phone: this.extractPhone(basicInfo),
+    status: this.determineStatus(franchise),
+    imageUrl: null,
+    totalStores: storeInfo.totalStores,
+    directStores: storeInfo.directStores,
+    franchiseStores: storeInfo.franchiseStores,
+    createdAt: franchise.crawledAt,
+    updatedAt: franchise.updatedAt
+  };
+}
 
 
 
