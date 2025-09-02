@@ -78,50 +78,56 @@ export class FranchiseService {
   }
 
   // 카테고리별 조회
-  async getFranchisesByCategory(category: string, page: number = 1, size: number = 20) {
-    const skip = (page - 1) * size;
-    
-    let whereClause = {};
-    
-    if (category !== 'ALL') {
-      whereClause = {
-        OR: [
-          {
-            companyName: { contains: category, mode: 'insensitive' as const }
-          },
-          {
-            brandName: { contains: category, mode: 'insensitive' as const }
-          }
-        ]
-      };
-    }
+ async getFranchisesByCategory(category: string, page: number = 1, size: number = 20) {
+  const skip = (page - 1) * size;
+  
+  // 전체 데이터를 가져와서 메모리에서 필터링하는 방식
+  // (JSON 쿼리보다 더 안정적)
+  
+  try {
+    // 모든 프랜차이즈 데이터 조회
+    const allFranchises = await this.prisma.franchise.findMany({
+      orderBy: { crawledAt: 'desc' },
+      select: {
+        companyId: true,
+        companyName: true,
+        brandName: true,
+        basicInfo: true,
+        businessStatus: true,
+        crawledAt: true,
+        updatedAt: true
+      }
+    });
 
-    const [franchises, totalCount] = await Promise.all([
-      this.prisma.franchise.findMany({
-        where: whereClause,
-        skip,
-        take: size,
-        orderBy: { crawledAt: 'desc' },
-        select: {
-          companyId: true,
-          companyName: true,
-          brandName: true,
-          basicInfo: true,
-          businessStatus: true,
-          crawledAt: true,
-          updatedAt: true
-        }
-      }),
-      this.prisma.franchise.count({ where: whereClause })
-    ]);
+    // 카테고리 필터링 (메모리에서)
+    const filteredFranchises = allFranchises.filter(franchise => {
+      if (category === 'ALL' || category === '전체') {
+        return true;
+      }
+      
+      // extractCategory 메서드를 사용해서 실제 업종과 비교
+      const extractedCategory = this.extractCategory(franchise.basicInfo);
+      return extractedCategory === category;
+    });
+
+    // 수동 페이징
+    const totalCount = filteredFranchises.length;
+    const startIndex = skip;
+    const endIndex = skip + size;
+    const paginatedFranchises = filteredFranchises.slice(startIndex, endIndex);
 
     return this.createPagingResponse(
-      franchises.map(f => this.transformToListItem(f)),
+      paginatedFranchises.map(f => this.transformToListItem(f)),
       totalCount,
       page,
       size
     );
+
+  } catch (error) {
+    console.error('카테고리별 조회 중 오류:', error);
+    return this.createPagingResponse([], 0, page, size);
   }
+}
 
   // 검색
   async searchFranchises(query: string, page: number = 1, size: number = 20) {
