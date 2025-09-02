@@ -148,28 +148,31 @@ export class FranchiseService {
 
   // 목록용 변환 (가벼운 데이터)
   private transformToListItem(franchise: any) {
-    const basicInfo = franchise.basicInfo;
-    const businessStatus = franchise.businessStatus;
-    const storeInfo = this.extractStoreInfo(businessStatus);
+  const basicInfo = franchise.basicInfo;
+  const businessStatus = franchise.businessStatus;
+  const storeInfo = this.extractStoreInfo(businessStatus);
 
-    return {
-      id: franchise.companyId,
-      name: franchise.companyName || franchise.brandName || "정보 없음",
-      brandName: franchise.brandName || "정보 없음",
-      category: this.extractCategory(basicInfo),
-      ceo: this.extractCeoName(basicInfo),
-      businessType: this.extractBusinessType(basicInfo),
-      address: this.extractAddress(basicInfo),
-      phone: this.extractPhone(basicInfo),
-      status: this.determineStatus(franchise),
-      imageUrl: null,
-      totalStores: storeInfo.totalStores,
-      directStores: storeInfo.directStores,
-      franchiseStores: storeInfo.franchiseStores,
-      createdAt: franchise.crawledAt,
-      updatedAt: franchise.updatedAt
-    };
-  }
+  return {
+    id: franchise.companyId,
+    name: franchise.companyName || franchise.brandName || "정보 없음",
+    brandName: franchise.brandName || "정보 없음",
+    category: this.extractCategory(basicInfo),
+    ceo: this.extractCeoName(basicInfo),
+    businessType: this.extractBusinessType(basicInfo),
+    address: this.extractAddress(basicInfo),
+    phone: this.extractPhone(basicInfo),
+    status: this.determineStatus(franchise),
+    imageUrl: null,
+    totalStores: storeInfo.totalStores,
+    directStores: storeInfo.directStores,
+    franchiseStores: storeInfo.franchiseStores,
+    establishedDate: this.extractEstablishedDate(basicInfo),     // 추가
+    registrationNumber: this.extractRegistrationNumber(basicInfo), // 추가
+    createdAt: franchise.crawledAt,
+    updatedAt: franchise.updatedAt
+  };
+}
+
 
   // 상세용 변환 (전체 데이터)
   private transformToDetailData(franchise: any) {
@@ -441,4 +444,45 @@ export class FranchiseService {
       hasPrevious: page > 1
     };
   }
+
+  // 설립일 추출 함수 추가
+private extractEstablishedDate(basicInfo: any): string {
+  try {
+    const sections = basicInfo?.sections || [];
+    for (const section of sections) {
+      if (section?.data && Array.isArray(section.data)) {
+        // 법인설립등기일 우선, 없으면 사업자등록일
+        const establishedItem = section.data.find(item => 
+          item?.title === '법인설립등기일' || item?.title === '사업자등록일'
+        );
+        if (establishedItem?.value && establishedItem.value !== "..") {
+          return establishedItem.value;
+        }
+      }
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+// 등록번호 추출 함수 추가
+private extractRegistrationNumber(basicInfo: any): string {
+  try {
+    const sections = basicInfo?.sections || [];
+    for (const section of sections) {
+      if (section?.data && Array.isArray(section.data)) {
+        const regItem = section.data.find(item => 
+          item?.title === '등록번호'
+        );
+        if (regItem?.value) {
+          return regItem.value;
+        }
+      }
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
 }

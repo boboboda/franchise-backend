@@ -79,10 +79,12 @@ export class FranchiseListItemDto {
   address: string;
   phone: string;
   status: string;
-  imageUrl?: string | null;  // null 허용
+  imageUrl?: string | null;
   totalStores: number;
   directStores: number;
   franchiseStores: number;
+  establishedDate: string;        // 추가
+  registrationNumber: string;     // 추가 (선택사항)
   createdAt: Date;
   updatedAt: Date;
 }
