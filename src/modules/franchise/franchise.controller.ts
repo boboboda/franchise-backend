@@ -10,6 +10,19 @@ import {
 export class FranchiseController {
   constructor(private franchiseService: FranchiseService) {}
 
+
+  @Get('categories')
+@HttpCode(HttpStatus.OK)
+async getCategories() {
+  const result = await this.franchiseService.getCategories();
+  
+  return {
+    success: true,
+    message: '카테고리 목록 조회 성공',
+    data: result.data
+  };
+}
+
   @Get('search')
   @HttpCode(HttpStatus.OK)
   async searchFranchises(@Query() queryDto: FranchiseSearchQueryDto) {

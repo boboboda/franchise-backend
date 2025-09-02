@@ -7,6 +7,46 @@ import { FranchiseCategory } from './dto/franchise.dto';
 export class FranchiseService {
   constructor(private prisma: PrismaService) {}
 
+  // 카테고리 조회
+  async getCategories() {
+  try {
+    // 모든 프랜차이즈의 basicInfo에서 업종 추출
+    const franchises = await this.prisma.franchise.findMany({
+      select: {
+        basicInfo: true
+      }
+    });
+
+    // 카테고리별 개수 집계
+    const categoryCountMap = new Map<string, number>();
+
+    franchises.forEach(franchise => {
+      const category = this.extractCategory(franchise.basicInfo);
+      const currentCount = categoryCountMap.get(category) || 0;
+      categoryCountMap.set(category, currentCount + 1);
+    });
+
+    // Map을 배열로 변환하고 개수 기준으로 정렬
+    const categories = Array.from(categoryCountMap.entries())
+      .map(([name, count]) => ({
+        name: name,
+        count: count
+      }))
+      .sort((a, b) => b.count - a.count); // 개수 많은 순으로 정렬
+
+    return {
+      success: true,
+      data: categories
+    };
+  } catch (error) {
+    console.error('카테고리 조회 중 오류:', error);
+    return {
+      success: false,
+      data: []
+    };
+  }
+}
+
   // 목록 조회 (간단한 데이터)
   async getFranchises(page: number = 1, size: number = 20) {
     const skip = (page - 1) * size;
