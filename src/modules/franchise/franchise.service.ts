@@ -55,7 +55,7 @@ export class FranchiseService {
       this.prisma.franchise.findMany({
         skip,
         take: size,
-        orderBy: { crawledAt: 'desc' },
+        orderBy: { companyId: 'asc' },
         select: {
           companyId: true,
           companyName: true,
