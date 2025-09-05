@@ -48,34 +48,39 @@ export class FranchiseService {
 }
 
   // 목록 조회 (간단한 데이터)
-  async getFranchises(page: number = 1, size: number = 20) {
-    const skip = (page - 1) * size;
+ async getFranchises(page: number = 1, size: number = 20, sortOrder: 'asc' | 'desc' = 'asc') {
+  const skip = (page - 1) * size;
 
-    const [franchises, totalCount] = await Promise.all([
-      this.prisma.franchise.findMany({
-        skip,
-        take: size,
-        orderBy: { companyId: 'asc' },
-        select: {
-          companyId: true,
-          companyName: true,
-          brandName: true,
-          basicInfo: true,
-          businessStatus: true,
-          crawledAt: true,
-          updatedAt: true
-        }
-      }),
-      this.prisma.franchise.count()
-    ]);
+  // 정렬 순서에 따른 orderBy 설정
+  const orderBy = sortOrder === 'asc' 
+    ? { companyId: 'asc' as const }      // 오래된순 (캐싱 최적화)
+    : { crawledAt: 'desc' as const };    // 최신순 (실시간)
 
-    return this.createPagingResponse(
-      franchises.map(f => this.transformToListItem(f)), 
-      totalCount, 
-      page, 
-      size
-    );
-  }
+  const [franchises, totalCount] = await Promise.all([
+    this.prisma.franchise.findMany({
+      skip,
+      take: size,
+      orderBy: orderBy,  // 동적 정렬
+      select: {
+        companyId: true,
+        companyName: true,
+        brandName: true,
+        basicInfo: true,
+        businessStatus: true,
+        crawledAt: true,
+        updatedAt: true
+      }
+    }),
+    this.prisma.franchise.count()
+  ]);
+
+  return this.createPagingResponse(
+    franchises.map(f => this.transformToListItem(f)), 
+    totalCount, 
+    page, 
+    size
+  );
+}
 
   // 카테고리별 조회
  async getFranchisesByCategory(category: string, page: number = 1, size: number = 20) {

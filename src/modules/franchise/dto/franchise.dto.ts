@@ -1,6 +1,6 @@
 
 // src/franchise/dto/franchise-query.dto.ts
-import { IsOptional, IsInt, Min, IsString, IsEnum } from 'class-validator';
+import { IsOptional, IsInt, Min, IsString, IsEnum, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum FranchiseCategory {
@@ -33,6 +33,10 @@ export class FranchiseQueryDto {
   @Min(1)
   @Type(() => Number)
   size?: number = 20;
+
+   @IsOptional()
+    @IsIn(['asc', 'desc'])
+    sortOrder?: 'asc' | 'desc' = 'asc';  // 추가
 }
 
 export class FranchiseCategoryQueryDto extends FranchiseQueryDto {

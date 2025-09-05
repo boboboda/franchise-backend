@@ -39,39 +39,41 @@ async getCategories() {
     };
   }
 
-  @Get('category/:category')
-  @HttpCode(HttpStatus.OK)
-  async getFranchisesByCategory(
-    @Param('category') category: string,
-    @Query() queryDto: FranchiseQueryDto
-  ) {
-    const result = await this.franchiseService.getFranchisesByCategory(
-      category,
-      queryDto.page,
-      queryDto.size
-    );
+@Get('category/:category')
+@HttpCode(HttpStatus.OK)
+async getFranchisesByCategory(
+  @Param('category') category: string,
+  @Query() queryDto: FranchiseQueryDto  // sortOrder 파라미터 포함
+) {
+  const result = await this.franchiseService.getFranchisesByCategory(
+    category,
+    queryDto.page,
+    queryDto.size,
+    queryDto.sortOrder  // 정렬 파라미터 추가
+  );
 
-    return {
-      success: true,
-      message: `${category} 카테고리 조회 성공`,
-      data: result
-    };
-  }
+  return {
+    success: true,
+    message: `${category} 카테고리 조회 성공 (${queryDto.sortOrder === 'desc' ? '최신순' : '오래된순'})`,
+    data: result
+  };
+}
 
-  @Get()
-  @HttpCode(HttpStatus.OK)
-  async getFranchises(@Query() queryDto: FranchiseQueryDto) {
-    const result = await this.franchiseService.getFranchises(
-      queryDto.page,
-      queryDto.size
-    );
+@Get()
+@HttpCode(HttpStatus.OK)
+async getFranchises(@Query() queryDto: FranchiseQueryDto) {
+  const result = await this.franchiseService.getFranchises(
+    queryDto.page,
+    queryDto.size,
+    queryDto.sortOrder  // 추가
+  );
 
-    return {
-      success: true,
-      message: '프랜차이즈 목록 조회 성공',
-      data: result
-    };
-  }
+  return {
+    success: true,
+    message: `프랜차이즈 목록 조회 성공 (${queryDto.sortOrder === 'desc' ? '최신순' : '오래된순'})`,
+    data: result
+  };
+}
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
