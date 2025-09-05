@@ -83,16 +83,18 @@ export class FranchiseService {
 }
 
   // 카테고리별 조회
- async getFranchisesByCategory(category: string, page: number = 1, size: number = 20) {
+ async getFranchisesByCategory(category: string, page: number = 1, size: number = 20, sortOrder: 'asc' | 'desc' = 'asc') {
   const skip = (page - 1) * size;
   
-  // 전체 데이터를 가져와서 메모리에서 필터링하는 방식
-  // (JSON 쿼리보다 더 안정적)
+  // 정렬 순서에 따른 orderBy 설정
+  const orderBy = sortOrder === 'asc' 
+    ? { companyId: 'asc' as const }      // 오래된순 (캐싱 최적화)
+    : { crawledAt: 'desc' as const };    // 최신순 (실시간)
   
   try {
-    // 모든 프랜차이즈 데이터 조회
+    // 모든 프랜차이즈 데이터 조회 (정렬 적용)
     const allFranchises = await this.prisma.franchise.findMany({
-      orderBy: { crawledAt: 'desc' },
+      orderBy: orderBy,  // 동적 정렬
       select: {
         companyId: true,
         companyName: true,
