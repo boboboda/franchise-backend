@@ -54,7 +54,7 @@ export class FranchiseService {
   // 정렬 순서에 따른 orderBy 설정
   const orderBy = sortOrder === 'asc' 
     ? { companyId: 'asc' as const }      // 오래된순 (캐싱 최적화)
-    : { crawledAt: 'desc' as const };    // 최신순 (실시간)
+    : { companyId: 'desc' as const };    // 최신순 (실시간)
 
   const [franchises, totalCount] = await Promise.all([
     this.prisma.franchise.findMany({
@@ -561,4 +561,21 @@ private extractRegistrationNumber(basicInfo: any): string {
     return "";
   }
 }
+
+
+async getMetadata() {
+  const lastRecord = await this.prisma.franchise.findFirst({
+    orderBy: { companyId: 'desc' },
+    select: { companyId: true }
+  });
+
+  return {
+    success: true,
+    data: {
+      lastCompanyId: lastRecord?.companyId || '0'
+    }
+  };
 }
+}
+
+

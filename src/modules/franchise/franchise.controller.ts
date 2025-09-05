@@ -93,4 +93,16 @@ async getFranchises(@Query() queryDto: FranchiseQueryDto) {
       data: franchise
     };
   }
+
+
+  @Get('meta')
+async getMetadata() {
+  const result = await this.franchiseService.getMetadata();
+  
+  return {
+    success: result.success,
+    message: '메타데이터 조회 성공',
+    data: result.data
+  };
+}
 }
