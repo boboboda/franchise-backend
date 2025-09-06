@@ -24,5 +24,5 @@ RUN npm run build
 # 포트 노출
 EXPOSE 8080
 
-# 애플리케이션 실행
+# 애플리케이션 실행11
 CMD ["sh", "-c", "npx prisma migrate deploy && npm run start:prod"]
