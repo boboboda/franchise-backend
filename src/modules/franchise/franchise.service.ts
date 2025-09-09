@@ -571,10 +571,9 @@ async getMetadata() {
   return {
     success: true,
     data: {
-      lastCompanyId: lastRecord?.companyId || '0'
+      lastCompanyId: lastRecord?.companyId || 0  // 숫자로 변경
     }
   };
 }
+
 }
-
-
