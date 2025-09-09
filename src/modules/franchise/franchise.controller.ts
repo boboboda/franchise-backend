@@ -76,23 +76,33 @@ async getFranchises(@Query() queryDto: FranchiseQueryDto) {
 }
 
   @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  async getFranchiseById(@Param('id') id: number) {
-    const franchise = await this.franchiseService.getFranchiseById(id);
-
-    if (!franchise) {
-      return {
-        success: false,
-        message: '프랜차이즈를 찾을 수 없습니다'
-      };
-    }
-
+@HttpCode(HttpStatus.OK)
+async getFranchiseById(@Param('id') id: string) {  // string으로 받기
+  // 문자열을 숫자로 변환
+  const idInt = parseInt(id, 10);
+  
+  if (isNaN(idInt)) {
     return {
-      success: true,
-      message: '프랜차이즈 상세 조회 성공',
-      data: franchise
+      success: false,
+      message: '잘못된 프랜차이즈 ID입니다'
     };
   }
+
+  const franchise = await this.franchiseService.getFranchiseById(idInt);
+
+  if (!franchise) {
+    return {
+      success: false,
+      message: '프랜차이즈를 찾을 수 없습니다'
+    };
+  }
+
+  return {
+    success: true,
+    message: '프랜차이즈 상세 조회 성공',
+    data: franchise
+  };
+}
 
 
   @Get('meta')
