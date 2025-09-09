@@ -75,6 +75,18 @@ async getFranchises(@Query() queryDto: FranchiseQueryDto) {
   };
 }
 
+  @Get('meta')
+async getMetadata() {
+  const result = await this.franchiseService.getMetadata();
+  
+  return {
+    success: result.success,
+    message: '메타데이터 조회 성공',
+    data: result.data
+  };
+}
+
+
   @Get(':id')
 @HttpCode(HttpStatus.OK)
 async getFranchiseById(@Param('id') id: string) {  // string으로 받기
@@ -104,15 +116,4 @@ async getFranchiseById(@Param('id') id: string) {  // string으로 받기
   };
 }
 
-
-  @Get('meta')
-async getMetadata() {
-  const result = await this.franchiseService.getMetadata();
-  
-  return {
-    success: result.success,
-    message: '메타데이터 조회 성공',
-    data: result.data
-  };
-}
 }
