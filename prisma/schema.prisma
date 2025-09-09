@@ -16,7 +16,7 @@ datasource db {
 
 model Franchise {
   id                 Int      @id @default(autoincrement())
-  companyId          String   @unique @map("company_id")
+  companyId          Int      @unique @map("company_id")  // String → Int
   url                String
   companyName        String?  @map("company_name")
   brandName          String?  @map("brand_name")
