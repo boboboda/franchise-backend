@@ -193,11 +193,10 @@ export class FranchiseService {
   // 상세 조회
   async getFranchiseById(id: number) {
     const franchise = await this.prisma.franchise.findUnique({
-      where: { companyId: id }
+      where: { id }
     });
-
     return franchise ? this.transformToDetailData(franchise) : null;
-  }
+}
 
   // 목록용 변환 (가벼운 데이터)
   private transformToListItem(franchise: any) {
