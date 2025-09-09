@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,46 +7,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Franchise {
-  id                 Int      @id @default(autoincrement())
-  companyId          Int      @unique @map("company_id")  // String → Int
-  url                String
-  companyName        String?  @map("company_name")
-  brandName          String?  @map("brand_name")
-  crawledAt          DateTime @default(now()) @map("crawled_at")
-  
-  // JSON 필드들 - 파이썬 구조와 일치
-  basicInfo          Json     @map("basic_info")
-  businessStatus     Json     @map("business_status")
-  legalCompliance    Json     @map("legal_compliance")
-  franchiseeCosts    Json     @map("franchisee_costs")
-  businessTerms      Json     @map("business_terms")
-  
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @default(now()) @updatedAt
+  basicInfo       Json     @map("basic_info")
+  brandName       String?  @map("brand_name")
+  businessStatus  Json     @map("business_status")
+  businessTerms   Json     @map("business_terms")
+  companyId       Int      @unique @map("company_id")
+  companyName     String?  @map("company_name")
+  crawledAt       DateTime @default(now()) @map("crawled_at")
+  franchiseeCosts Json     @map("franchisee_costs")
+  legalCompliance Json     @map("legal_compliance")
+  url             String
+  id              Int      @id @default(autoincrement())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  @@map("franchises")
   @@index([companyId])
   @@index([companyName])
   @@index([brandName])
+  @@map("franchises")
 }
 
-// prisma/schema.prisma에 User 모델 추가
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
+  id              String   @id @default(cuid())
+  email           String   @unique
   password        String
   name            String
   phone           String
-  role            String    @default("USER")
-  userType        UserType  @default(ENTREPRENEUR)
+  role            String   @default("USER")
+  userType        UserType @default(ENTREPRENEUR)
   fcmToken        String?
-  termsAgreed     Boolean   @default(false)
-  marketingAgreed Boolean   @default(false)
-  autoLoginState  Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  termsAgreed     Boolean  @default(false)
+  marketingAgreed Boolean  @default(false)
+  autoLoginState  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@map("users")
 }

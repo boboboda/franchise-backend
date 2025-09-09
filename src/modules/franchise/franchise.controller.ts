@@ -77,7 +77,7 @@ async getFranchises(@Query() queryDto: FranchiseQueryDto) {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async getFranchiseById(@Param('id') id: string) {
+  async getFranchiseById(@Param('id') id: number) {
     const franchise = await this.franchiseService.getFranchiseById(id);
 
     if (!franchise) {
