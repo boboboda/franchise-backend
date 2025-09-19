@@ -54,7 +54,6 @@ export class AuthController {
      message: '로그아웃이 완료되었습니다'
    };
  }
- //d//
 
  @Get('me')
  @UseGuards(AuthGuard('jwt'))
