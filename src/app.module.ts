@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule'; // ⭐ 추가
 import { FranchiseModule } from './modules/franchise/franchise.module';
 import { CrawlerSchedulerModule } from './modules/crawler-scheduler/crawler-scheduler.module';
 import { AuthModule } from './auth/auth.module';
@@ -16,6 +17,7 @@ import { PrismaService } from './prisma/prisma.service';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(), // ⭐⭐⭐ 이게 핵심!
     FranchiseModule,
     CrawlerSchedulerModule,
     AuthModule,
