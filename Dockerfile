@@ -9,14 +9,14 @@ RUN npm install -g @nestjs/cli
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# 의존성 설치
-RUN npm ci
+# 의존성 설치 (npm ci 대신 npm install 사용)
+RUN npm install
+
+# Prisma 클라이언트 생성
+RUN npx prisma generate
 
 # 소스 코드 복사
 COPY . .
-
-# Prisma 생성
-RUN npx prisma generate
 
 # NestJS 빌드
 RUN npm run build
