@@ -5,6 +5,7 @@ import {
  FranchiseQueryDto, 
  FranchiseSearchQueryDto
 } from './dto/franchise.dto';
+import { FranchiseFilterDto } from './dto/franchise-filter.dto';
 
 @Controller('franchise')
 export class FranchiseController {
@@ -113,4 +114,34 @@ export class FranchiseController {
      data: result
    };
  }
+
+
+ /* 고급 필터로 프랜차이즈 조회
+   * 
+   * @route GET /franchise/filter
+   * @param filterDto - Query Parameter로 전달된 필터 조건
+   * @returns 필터링된 프랜차이즈 목록
+   * 
+   * @example
+   * GET /franchise/filter?minInvestment=50000000&maxInvestment=100000000&maxTerminationRate=5&page=1&size=20
+   */
+  @Get('filter')
+  @HttpCode(HttpStatus.OK)
+  async filterFranchises(@Query() filterDto: FranchiseFilterDto) {
+    console.log('📥 [API] 고급 필터 요청:', filterDto);
+
+    const result = await this.franchiseService.filterFranchises(filterDto);
+
+    console.log('📤 [API] 고급 필터 응답:', {
+      totalElements: result.totalElements,
+      currentPage: result.currentPage,
+      totalPages: result.totalPages
+    });
+
+    return {
+      success: true,
+      message: '필터 조회 성공',
+      data: result
+    };
+  }
 }
