@@ -564,142 +564,154 @@ async getMetadata() {
    * 3. 페이징 적용
    */
   async filterFranchises(filterDto: FranchiseFilterDto) {
-    const {
-      minInvestment,
-      maxInvestment,
-      minRevenue,
-      maxRevenue,
-      minStores,
-      maxStores,
-      maxTerminationRate,
-      hasRoyalty,
-      category,
-      page = 1,
-      size = 20,
-      sortOrder = 'desc'
-    } = filterDto;
+  const {
+    minInvestment,
+    maxInvestment,
+    minRevenue,
+    maxRevenue,
+    minStores,
+    maxStores,
+    maxTerminationRate,
+    hasRoyalty,
+    category,
+    page = 1,
+    size = 20,
+    sortOrder = 'desc'
+  } = filterDto;
 
-    const skip = (page - 1) * size;
+  const skip = (page - 1) * size;
 
-    // ============ STEP 1: 데이터베이스에서 모든 프랜차이즈 로드 ============
-    console.log('🔍 [필터] 데이터베이스에서 프랜차이즈 로드 중...');
+  console.log('🔍 [필터] 데이터베이스에서 프랜차이즈 로드 중...');
+  
+  const allFranchises = await this.prisma.franchise.findMany({
+    orderBy: sortOrder === 'desc' ? { crawledAt: 'desc' } : { companyId: 'asc' }
+  });
+
+  console.log(`✅ [필터] 총 ${allFranchises.length}개 프랜차이즈 로드 완료`);
+
+  // ✅✅✅ 샘플 데이터의 실제 구조 확인 ✅✅✅
+  if (allFranchises.length > 0) {
+    console.log('\n📋 [필터] 샘플 데이터 구조 분석:');
+    const sample = allFranchises[0];
+    console.log('brandName:', sample.brandName);
+    console.log('businessStatus 타입:', typeof sample.businessStatus);
+    console.log('businessStatus 내용:', JSON.stringify(sample.businessStatus, null, 2));
     
-    const allFranchises = await this.prisma.franchise.findMany({
-      orderBy: sortOrder === 'desc' 
-        ? { crawledAt: 'desc' }  // 최신순 (크롤링 시간 기준)
-        : { companyId: 'asc' }   // 등록순 (ID 기준)
-    });
-
-    console.log(`✅ [필터] 총 ${allFranchises.length}개 프랜차이즈 로드 완료`);
-
-    // ============ STEP 2: 메모리에서 필터링 ============
-    console.log('🔧 [필터] 필터 조건 적용 중...');
-    
-    const filtered = allFranchises.filter(franchise => {
-      // JSON 필드에서 데이터 추출
-      const basicInfo = franchise.basicInfo as any || {};
-      const businessStatus = franchise.businessStatus as any || {};
-      const financialInfo = basicInfo.financialInfo || {};
-      const salesInfo = basicInfo.salesInfo || {};
-
-      // ---------- 카테고리 필터 ----------
-      if (category) {
-        const franchiseCategory = basicInfo.category || '';
-        if (franchiseCategory !== category) {
-          return false; // 카테고리 불일치 → 제외
-        }
-      }
-
-      // ---------- 투자금 필터 ----------
-      // 총 투자금 = 가맹비 + 교육비 + 보증금 + 인테리어 비용
-      const totalInvestment = 
-        (financialInfo.franchiseFee || 0) +
-        (financialInfo.educationFee || 0) +
-        (financialInfo.deposit || 0) +
-        (financialInfo.interiorCost || 0);
-
-      if (minInvestment !== undefined && totalInvestment < minInvestment) {
-        return false; // 최소 투자금 미만 → 제외
-      }
-      if (maxInvestment !== undefined && totalInvestment > maxInvestment) {
-        return false; // 최대 투자금 초과 → 제외
-      }
-
-      // ---------- 매출 필터 ----------
-      const avgRevenue = salesInfo.averageSales || 0;
-      
-      if (minRevenue !== undefined && avgRevenue < minRevenue) {
-        return false; // 최소 매출 미만 → 제외
-      }
-      if (maxRevenue !== undefined && avgRevenue > maxRevenue) {
-        return false; // 최대 매출 초과 → 제외
-      }
-
-      // ---------- 가맹점 수 필터 ----------
-      const totalStores = businessStatus.totalStores || 0;
-      
-      if (minStores !== undefined && totalStores < minStores) {
-        return false; // 최소 점포수 미만 → 제외
-      }
-      if (maxStores !== undefined && totalStores > maxStores) {
-        return false; // 최대 점포수 초과 → 제외
-      }
-
-      // ---------- 해지율 필터 ----------
-      const terminationRate = businessStatus.terminationRate || 0;
-      
-      if (maxTerminationRate !== undefined && terminationRate > maxTerminationRate) {
-        return false; // 최대 해지율 초과 → 제외
-      }
-
-      // ---------- 로열티 유무 필터 ----------
-      if (hasRoyalty !== undefined) {
-        const royaltyRate = financialInfo.royaltyRate || 0;
-        const hasRoyaltyValue = royaltyRate > 0;
-        
-        if (hasRoyalty !== hasRoyaltyValue) {
-          return false; // 로열티 조건 불일치 → 제외
-        }
-      }
-
-      // 모든 조건 통과 → 포함
-      return true;
-    });
-
-    console.log(`✅ [필터] 필터 적용 후 ${filtered.length}개 프랜차이즈 남음`);
-
-    // ============ STEP 3: 페이징 적용 ============
-    const paginatedData = filtered.slice(skip, skip + size);
-
-    console.log(`📄 [페이징] ${page}페이지 (${skip + 1} ~ ${skip + size}): ${paginatedData.length}개 반환`);
-
-    // ============ STEP 4: 응답 데이터 변환 ============
-    return {
-      content: paginatedData.map(f => this.transformToListItem(f)),
-      totalElements: filtered.length,
-      totalPages: Math.ceil(filtered.length / size),
-      currentPage: page,
-      size: size,
-      hasNext: page < Math.ceil(filtered.length / size),
-      hasPrevious: page > 1,
-      // 디버깅용 정보 (개발 환경에서만)
-      _debug: process.env.NODE_ENV === 'development' ? {
-        appliedFilters: {
-          minInvestment,
-          maxInvestment,
-          minRevenue,
-          maxRevenue,
-          minStores,
-          maxStores,
-          maxTerminationRate,
-          hasRoyalty,
-          category
-        },
-        totalBeforeFilter: allFranchises.length,
-        totalAfterFilter: filtered.length
-      } : undefined
-    };
+    const businessStatus = sample.businessStatus as any || {};
+    console.log('totalStores 값:', businessStatus.totalStores);
+    console.log('totalStores 타입:', typeof businessStatus.totalStores);
   }
+
+  console.log('\n🔧 [필터] 필터 조건:');
+  console.log('   minStores:', minStores);
+  console.log('   maxStores:', maxStores);
+
+  let storesFilterFailed = 0;
+  let storesValueZero = 0;
+  let storesValueNull = 0;
+
+  const filtered = allFranchises.filter((franchise) => {
+    const basicInfo = franchise.basicInfo as any || {};
+    const businessStatus = franchise.businessStatus as any || {};
+    const financialInfo = basicInfo.financialInfo || {};
+    const salesInfo = basicInfo.salesInfo || {};
+
+    // ---------- 투자금 필터 ----------
+    const totalInvestment = 
+      (financialInfo.franchiseFee || 0) +
+      (financialInfo.educationFee || 0) +
+      (financialInfo.deposit || 0) +
+      (financialInfo.interiorCost || 0);
+
+    if (minInvestment && totalInvestment < minInvestment) {
+      return false;
+    }
+    if (maxInvestment && totalInvestment > maxInvestment) {
+      return false;
+    }
+
+    // ---------- 매출 필터 ----------
+    const avgRevenue = salesInfo.averageSales || 0;
+    if (minRevenue && avgRevenue < minRevenue) {
+      return false;
+    }
+    if (maxRevenue && avgRevenue > maxRevenue) {
+      return false;
+    }
+
+    // ---------- 가맹점 수 필터 (수정됨!) ----------
+    const totalStores = businessStatus.totalStores;
+    
+    // ✅ 디버깅: 가맹점 수 값 확인
+    if (totalStores === null || totalStores === undefined) {
+      storesValueNull++;
+    } else if (totalStores === 0) {
+      storesValueZero++;
+    }
+
+    // ✅ 수정: null/undefined를 0으로 변환하지 않고 체크
+    if (minStores !== undefined) {
+      if (totalStores === null || totalStores === undefined || totalStores < minStores) {
+        storesFilterFailed++;
+        return false;
+      }
+    }
+    
+    if (maxStores !== undefined) {
+      if (totalStores !== null && totalStores !== undefined && totalStores > maxStores) {
+        storesFilterFailed++;
+        return false;
+      }
+    }
+
+    // ---------- 해지율 필터 ----------
+    const termRate = businessStatus.terminationRate || 0;
+    if (maxTerminationRate !== undefined && termRate > maxTerminationRate) {
+      return false;
+    }
+
+    // ---------- 로열티 유무 필터 ----------
+    if (hasRoyalty !== undefined) {
+      const royaltyRate = financialInfo.royaltyRate || 0;
+      const hasRoyaltyValue = royaltyRate > 0;
+      
+      if (hasRoyalty !== hasRoyaltyValue) {
+        return false;
+      }
+    }
+
+    // ---------- 카테고리 필터 ----------
+    if (category) {
+      const franchiseCategory = basicInfo.category || '';
+      if (franchiseCategory !== category) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  console.log(`\n📊 [필터] 가맹점 데이터 분석:`);
+  console.log(`   totalStores가 null/undefined: ${storesValueNull}개`);
+  console.log(`   totalStores가 0: ${storesValueZero}개`);
+  console.log(`   가맹점 조건 탈락: ${storesFilterFailed}개`);
+  console.log(`✅ [필터] 필터 적용 후 ${filtered.length}개 프랜차이즈 남음`);
+
+  // 페이징
+  const paginatedData = filtered.slice(skip, skip + size);
+
+  console.log(`📄 [페이징] ${page}페이지: ${paginatedData.length}개 반환\n`);
+
+  return {
+    content: paginatedData.map(f => this.transformToListItem(f)),
+    totalElements: filtered.length,
+    totalPages: Math.ceil(filtered.length / size),
+    currentPage: page,
+    size: size,
+    hasNext: page < Math.ceil(filtered.length / size),
+    hasPrevious: page > 1
+  };
+}
 
   /**
    * 프랜차이즈 데이터를 리스트 아이템 형태로 변환
