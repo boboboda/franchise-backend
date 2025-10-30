@@ -243,7 +243,9 @@ export class FranchiseService {
     console.log('🔧 [필터] 필터 조건 적용 중...');
     
     // ============ 파서를 사용한 필터링 ============
-    const filtered = allFranchises.filter(franchise => {
+    let debugSampleShown = false;
+    
+    const filtered = allFranchises.filter((franchise, index) => {
       const basicInfo = franchise.basicInfo as any || {};
       const businessStatus = franchise.businessStatus as any || {};
       const franchiseeCosts = franchise.franchiseeCosts as any || {};
@@ -253,6 +255,27 @@ export class FranchiseService {
       const parsedFinancial = this.parser.parseFinancialInfo(franchiseeCosts);
       const parsedSales = this.parser.parseSalesInfo(businessStatus);
       const parsedCategory = this.parser.parseCategory(basicInfo);
+
+      // 🐛 첫 번째 아이템 디버깅
+      if (!debugSampleShown && index === 0) {
+        console.log('🐛 [디버깅] 첫 번째 프랜차이즈 파싱 결과:');
+        console.log('  - companyId:', franchise.companyId);
+        console.log('  - brandName:', franchise.brandName);
+        console.log('  - parsedBusiness:', parsedBusiness);
+        console.log('  - parsedFinancial:', parsedFinancial);
+        console.log('  - parsedSales:', parsedSales);
+        console.log('  - parsedCategory:', parsedCategory);
+        console.log('  - 필터 조건:');
+        console.log('    * minInvestment:', minInvestment);
+        console.log('    * maxInvestment:', maxInvestment);
+        console.log('    * 파싱된 투자금:', parsedFinancial.totalInvestment);
+        console.log('    * 통과 여부:', 
+          minInvestment === undefined || parsedFinancial.totalInvestment >= minInvestment,
+          '&&',
+          maxInvestment === undefined || parsedFinancial.totalInvestment <= maxInvestment
+        );
+        debugSampleShown = true;
+      }
 
       // ---------- 카테고리 필터 ----------
       if (category && parsedCategory !== category) {
