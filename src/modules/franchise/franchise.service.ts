@@ -705,32 +705,30 @@ async getMetadata() {
    * 프랜차이즈 데이터를 리스트 아이템 형태로 변환
    * (기존 메서드 재사용)
    */
-  // src/modules/franchise/franchise.service.ts
-// filterFranchises 메서드 내부의 transformToListItem 수정
-
+  // 목록용 변환 (간단한 데이터)
 private transformToListItem(franchise: any) {
-    const basicInfo = franchise.basicInfo as any || {};
-    const businessStatus = franchise.businessStatus as any || {};
-    const financialInfo = basicInfo.financialInfo || {};
-    const salesInfo = basicInfo.salesInfo || {};
+    const basicInfo = franchise.basicInfo;
+    const businessStatus = franchise.businessStatus;
 
     return {
-        id: franchise.companyId,  // ← 이 줄 추가!
+        id: franchise.companyId,  // ✅ 추가!
+        name: franchise.companyName || franchise.brandName || "정보 없음",  // ✅ 추가!
         companyId: franchise.companyId,
         companyName: franchise.companyName,
         brandName: franchise.brandName,
-        category: basicInfo.category || '미분류',
-        businessType: basicInfo.businessType || '',
-        totalStores: businessStatus.totalStores || 0,
-        averageSales: salesInfo.averageSales || 0,
-        totalInvestment: 
-            (financialInfo.franchiseFee || 0) +
-            (financialInfo.educationFee || 0) +
-            (financialInfo.deposit || 0) +
-            (financialInfo.interiorCost || 0),
-        terminationRate: businessStatus.terminationRate || 0,
-        hasRoyalty: (financialInfo.royaltyRate || 0) > 0,
-        crawledAt: franchise.crawledAt,
+        category: this.extractCategory(basicInfo),
+        ceo: this.extractCeoName(basicInfo),
+        businessType: this.extractBusinessType(basicInfo),
+        address: this.extractAddress(basicInfo),
+        phone: this.extractPhone(basicInfo),
+        status: this.determineStatus(franchise),
+        imageUrl: null,
+        totalStores: businessStatus?.totalStores || 0,
+        directStores: businessStatus?.directStores || 0,
+        franchiseStores: businessStatus?.franchiseStores || 0,
+        establishedDate: this.extractEstablishedDate(basicInfo) || "",
+        registrationNumber: this.extractRegistrationNumber(basicInfo) || "",
+        createdAt: franchise.crawledAt,
         updatedAt: franchise.updatedAt
     };
 }
