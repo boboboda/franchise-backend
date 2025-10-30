@@ -130,13 +130,18 @@ export class FranchiseParser {
         }
       }
       
-      const totalInvestment = franchiseFee + educationFee + deposit + interiorCost;
+      // ✅ DB에 만원 단위로 저장되어 있으므로 10,000 곱하기
+      const franchiseFeeWon = franchiseFee * 10000;
+      const educationFeeWon = educationFee * 10000;
+      const depositWon = deposit * 10000;
+      const interiorCostWon = interiorCost * 10000;
+      const totalInvestment = franchiseFeeWon + educationFeeWon + depositWon + interiorCostWon;
       
       return {
-        franchiseFee,
-        educationFee,
-        deposit,
-        interiorCost,
+        franchiseFee: franchiseFeeWon,
+        educationFee: educationFeeWon,
+        deposit: depositWon,
+        interiorCost: interiorCostWon,
         royaltyRate,
         totalInvestment
       };
