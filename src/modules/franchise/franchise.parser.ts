@@ -130,11 +130,11 @@ export class FranchiseParser {
         }
       }
       
-      // ✅ DB에 만원 단위로 저장되어 있으므로 10,000 곱하기
-      const franchiseFeeWon = franchiseFee * 10000;
-      const educationFeeWon = educationFee * 10000;
-      const depositWon = deposit * 10000;
-      const interiorCostWon = interiorCost * 10000;
+      // ✅ DB에 천원 단위로 저장되어 있으므로 1,000 곱하기
+      const franchiseFeeWon = franchiseFee * 1000;
+      const educationFeeWon = educationFee * 1000;
+      const depositWon = deposit * 1000;
+      const interiorCostWon = interiorCost * 1000;
       const totalInvestment = franchiseFeeWon + educationFeeWon + depositWon + interiorCostWon;
       
       return {
@@ -193,9 +193,10 @@ export class FranchiseParser {
         }
       }
       
+      // ✅ DB에 천원 단위로 저장되어 있으므로 1,000 곱하기
       return {
-        averageSales,
-        medianSales
+        averageSales: averageSales * 1000,
+        medianSales: medianSales * 1000
       };
       
     } catch (error) {
